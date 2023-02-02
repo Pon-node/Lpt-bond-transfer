@@ -29,8 +29,8 @@ def getABI(path):
         exit(1)
 
 """
-@brief Returns a JSON object of ABI data
-@param path: absolute/relative path to an ABI file
+@brief Returns the checksum of the provided public key
+@param wallet: raw public key as string
 """
 def getChecksumAddr(wallet):
     try:
