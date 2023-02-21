@@ -47,17 +47,15 @@ def getChecksumAddr(wallet):
 """
 def waitForStake(bonding_contract, delegator):
     # get delegator info (returns [bondedAmount, fees, delegateAddress, delegatedAmount, startRound, lastClaimRound, nextUnbondingLockId])
-    delegator_info = bonding_contract.functions.getDelegator(delegator).call()
     pending_lptu = bonding_contract.functions.pendingStake(delegator, 99999).call()
     pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
-    staked_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
-    print("Delegator is currently staking {0:.2f} LPT @ {1}".format(staked_lpt, delegator_info[2]))
-    while staked_lpt < LPT_THRESHOLD:
-        print("Waiting for staked LPT to reach threshold {0}. Currently has a stake of {1:.2f} LPT. Retrying in {2}...".format(LPT_THRESHOLD, staked_lpt, WAIT_TIME_BALANCE_CHECK))
+    print("Delegator is currently staking {0:.2f} LPT".format(pending_lpt))
+    while pending_lpt < LPT_THRESHOLD:
+        print("Waiting for staked LPT to reach threshold {0}. Currently has a stake of {1:.2f} LPT. Retrying in {2}...".format(LPT_THRESHOLD, pending_lpt, WAIT_TIME_BALANCE_CHECK))
         time.sleep(WAIT_TIME_BALANCE_CHECK)
-        delegator_info = bonding_contract.functions.getDelegator(delegator).call()
-        staked_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
-    print("Delegator has a stake of {0:.2f} LPT which exceeds the minimum threshold of {1:.2f}, continuing...".format(staked_lpt, LPT_THRESHOLD))
+        pending_lptu = bonding_contract.functions.pendingStake(delegator, 99999).call()
+        pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
+    print("Delegator has a stake of {0:.2f} LPT which exceeds the minimum threshold of {1:.2f}, continuing...".format(pending_lpt, LPT_THRESHOLD))
 
 """
 @brief Waits for the currents Livepeer round to become locked
