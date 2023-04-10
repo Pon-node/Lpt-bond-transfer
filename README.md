@@ -24,7 +24,7 @@ Creating systemd service to run LPT bond transfer script. steps to follow:
 ```mv Lpt-bond-transfer/* usr/local/bin/Lpt-bond-transfer/
 sudo nano /etc/systemd/system/bondTransfer.service``` and insert following:
 
-```
+
 [Unit]
 Description=LPT bond transfer
 After=multi-user.target
@@ -36,13 +36,12 @@ WorkingDirectory=/usr/local/bin/Lpt-bond-transfer
 ExecStart=/usr/bin/python3 -u /usr/local/bin/Lpt-bond-transfer/LPT-bond-transfer.py
 
 [Install]
-WantedBy=multi-user.target```
+WantedBy=multi-user.target
 
 Save service file and type following commands:
 
-```
 systemctl daemon-reload
-systemctl restart bondTransfer.service
+systemctl enable --now bondTransfer.service
 
-journalctl -u bondTransfer.service -n 500 -f```
+journalctl -u bondTransfer.service -n 500 -f
 
