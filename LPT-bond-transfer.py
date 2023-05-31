@@ -128,7 +128,7 @@ def doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destinat
 def doTransferETH(w3, parsed_delegator_wallet, parsed_destination_wallet):
     eth_balance = w3.eth.get_balance(parsed_delegator_wallet)
     transfer_amount = eth_balance - web3.Web3.toWei(0.01, 'ether') # leave 0.01 ETH as gas fee
-   ("Should transfer {0} ETH".format(web3.Web3.fromWei(transfer_amount, 'ether')))
+    print("Should transfer {0} ETH".format(web3.Web3.fromWei(transfer_amount, 'ether')))
     # Build transaction info
     tx = {
         'to': parsed_destination_wallet,
