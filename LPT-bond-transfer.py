@@ -3,11 +3,13 @@ import json
 import time
 
 # global config
-LPT_THRESHOLD = 3
+LPT_THRESHOLD = 100
 ETH_THRESHOLD = 0.1 # in ETH
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
 RECEIVER_PUBLIC_KEY = 'WalletThatWillReceiveAddress'
+ETH_RECEIVER_PUBLIC_KEY = 'ETHWalletThatWillReceiveAddress'
+LPT_RECEIVER_PUBLIC_KEY = 'LPTWalletThatWillReceiveAddress'
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
 
 # global constants
@@ -92,7 +94,7 @@ def waitForLock(rounds_contract):
 @param parsed_delegator_wallet: checksum public key of the delegator which wants to transfer stake
 @param parsed_destination_wallet: checksum address of the destination wallet
 """
-def doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_destination_wallet):
+def doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet):
     delegator_info = bonding_contract.functions.getDelegator(parsed_delegator_wallet).call()
     staked_lpt = web3.Web3.fromWei(delegator_info[0], 'ether')
     pending_lpt = bonding_contract.functions.pendingStake(parsed_delegator_wallet, 99999).call()
@@ -148,7 +150,8 @@ def doTransferETH(w3, parsed_delegator_wallet, parsed_destination_wallet):
 if __name__ == "__main__":
     # convert configured wallets to usable versions
     parsed_delegator_wallet = getChecksumAddr(DELEGATOR_PUBLIC_KEY)
-    parsed_destination_wallet = getChecksumAddr(RECEIVER_PUBLIC_KEY)
+    parsed_eth_destination_wallet = getChecksumAddr(ETH_RECEIVER_PUBLIC_KEY)
+    parsed_lpt_destination_wallet = getChecksumAddr(LPT_RECEIVER_PUBLIC_KEY)
 
     # open ABI files
     bondingABI = getABI("./BondingManagerTarget.json")
@@ -169,5 +172,5 @@ if __name__ == "__main__":
         waitForLPTStake(bonding_contract, parsed_delegator_wallet)
         waitForETHBalance(w3, parsed_delegator_wallet)
         waitForLock(rounds_contract)
-        doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_destination_wallet)
-        doTransferETH(w3, parsed_delegator_wallet, parsed_destination_wallet)
+        doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet)
+        doTransferETH(w3, parsed_delegator_wallet, parsed_eth_destination_wallet)
