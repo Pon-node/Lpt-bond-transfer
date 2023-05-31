@@ -1,12 +1,14 @@
 import web3
 import json
 import time
+import threading
 
 # global config
 LPT_THRESHOLD = 100
 ETH_THRESHOLD = 0.1 # in ETH
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
+RECEIVER_PUBLIC_KEY = 'WalletThatWillReceiveAddress'
 ETH_RECEIVER_PUBLIC_KEY = 'ETHWalletThatWillReceiveAddress'
 LPT_RECEIVER_PUBLIC_KEY = 'LPTWalletThatWillReceiveAddress'
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
@@ -145,6 +147,18 @@ def doTransferETH(w3, parsed_delegator_wallet, parsed_destination_wallet):
     receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
     print("Completed ETH transaction {0}".format(receipt))
 
+def lpt_transfer_loop():
+    while True:
+        print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
+        waitForLPTStake(bonding_contract, parsed_delegator_wallet)
+        waitForLock(rounds_contract)
+        doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet)
+
+def eth_transfer_loop():
+    while True:
+        print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
+        waitForETHBalance(w3, parsed_delegator_wallet)
+        doTransferETH(w3, parsed_delegator_wallet, parsed_eth_destination_wallet)
 
 if __name__ == "__main__":
     # convert configured wallets to usable versions
@@ -165,6 +179,16 @@ if __name__ == "__main__":
     bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=bondingABI)
     rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=roundsABI)
 
+    # create and start threads for LPT and ETH transfer loops
+    lpt_thread = threading.Thread(target=lpt_transfer_loop)
+    eth_thread = threading.Thread(target=eth_transfer_loop)
+
+    lpt_thread.start()
+    eth_thread.start()
+
+    lpt_thread.join()
+    eth_thread.join()
+    
     # main loop for LPT transfer
     while True:
         print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
