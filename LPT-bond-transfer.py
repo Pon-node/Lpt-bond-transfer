@@ -166,11 +166,15 @@ if __name__ == "__main__":
     bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=bondingABI)
     rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=roundsABI)
 
-    # main loop
+    # main loop for LPT transfer
     while True:
         print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
         waitForLPTStake(bonding_contract, parsed_delegator_wallet)
-        waitForETHBalance(w3, parsed_delegator_wallet)
         waitForLock(rounds_contract)
         doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet)
+
+    # main loop for ETH transfer
+    while True:
+        print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
+        waitForETHBalance(w3, parsed_delegator_wallet)
         doTransferETH(w3, parsed_delegator_wallet, parsed_eth_destination_wallet)
