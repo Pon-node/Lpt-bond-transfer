@@ -8,7 +8,6 @@ LPT_THRESHOLD = 100
 ETH_THRESHOLD = 0.1 # in ETH
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
-RECEIVER_PUBLIC_KEY = 'WalletThatWillReceiveAddress'
 ETH_RECEIVER_PUBLIC_KEY = 'ETHWalletThatWillReceiveAddress'
 LPT_RECEIVER_PUBLIC_KEY = 'LPTWalletThatWillReceiveAddress'
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
