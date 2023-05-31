@@ -1,4 +1,4 @@
-﻿# Lpt-bond-transfer
+﻿# Lpt-bond-and-ETH-transfer
 ```gh repo clone Pon-node/Lpt-bond-transfer```
 Modify ```nano /Lpt-bond-transfer/LPT-bond-Transfer.py``` to set LPT_treshold, insert wallet addresses,privates keys and you can change RPC provider if you want to
 
