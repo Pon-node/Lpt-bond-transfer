@@ -4,7 +4,7 @@ import time
 import threading
 
 # global config
-LPT_THRESHOLD = 100
+LPT_THRESHOLD = 3
 ETH_THRESHOLD = 0.1 # in ETH
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
