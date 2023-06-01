@@ -8,6 +8,7 @@ LPT_THRESHOLD = 100
 ETH_THRESHOLD = 0.1 # in ETH
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
+RECEIVER_PUBLIC_KEY = 'WalletThatWillReceiveAddress'
 ETH_RECEIVER_PUBLIC_KEY = 'ETHWalletThatWillReceiveAddress'
 LPT_RECEIVER_PUBLIC_KEY = 'LPTWalletThatWillReceiveAddress'
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
@@ -22,6 +23,16 @@ ROUNDS_CONTRACT_ADDR = '0xdd6f56DcC28D3F5f27084381fE8Df634985cc39f'
 @brief Returns a JSON object of ABI data
 @param path: absolute/relative path to an ABI file
 """
+def display_global_config():
+    print("Global Configuration:")
+    print("{:<25} {:<25}".format("Variable", "Value"))
+    print("-" * 50)
+    for key, value in globals().items():
+        if key == "DELEGATOR_PRIVATE_KEY":
+            continue
+        if key.isupper():
+            print("{:<25} {:<25}".format(key, value))
+
 def getABI(path):
     try:
         with open(path) as f:
@@ -160,6 +171,8 @@ def eth_transfer_loop():
         doTransferETH(w3, parsed_delegator_wallet, parsed_eth_destination_wallet)
 
 if __name__ == "__main__":
+    display_global_config()
+
     # convert configured wallets to usable versions
     parsed_delegator_wallet = getChecksumAddr(DELEGATOR_PUBLIC_KEY)
     parsed_eth_destination_wallet = getChecksumAddr(ETH_RECEIVER_PUBLIC_KEY)
