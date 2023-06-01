@@ -1,12 +1,16 @@
 import web3
 import json
 import time
+import threading
 
 # global config
 LPT_THRESHOLD = 3
+ETH_THRESHOLD = 0.1 # in ETH
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
-RECEIVER_PUBLIC_KEY = 'WalletThatWillReveiveBondAddress'
+RECEIVER_PUBLIC_KEY = 'WalletThatWillReceiveAddress'
+ETH_RECEIVER_PUBLIC_KEY = 'ETHWalletThatWillReceiveAddress'
+LPT_RECEIVER_PUBLIC_KEY = 'LPTWalletThatWillReceiveAddress'
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'
 
 # global constants
@@ -19,6 +23,16 @@ ROUNDS_CONTRACT_ADDR = '0xdd6f56DcC28D3F5f27084381fE8Df634985cc39f'
 @brief Returns a JSON object of ABI data
 @param path: absolute/relative path to an ABI file
 """
+def display_global_config():
+    print("Global Configuration:")
+    print("{:<25} {:<25}".format("Variable", "Value"))
+    print("-" * 50)
+    for key, value in globals().items():
+        if key == "DELEGATOR_PRIVATE_KEY":
+            continue
+        if key.isupper():
+            print("{:<25} {:<25}".format(key, value))
+
 def getABI(path):
     try:
         with open(path) as f:
@@ -45,7 +59,7 @@ def getChecksumAddr(wallet):
 @param bonding_contract: bonding manager contract object on which we can call `getDelegator`
 @param delegator: checksum address of the delegator which wants to transfer stake
 """
-def waitForStake(bonding_contract, delegator):
+def waitForLPTStake(bonding_contract, delegator):
     # get delegator info (returns [bondedAmount, fees, delegateAddress, delegatedAmount, startRound, lastClaimRound, nextUnbondingLockId])
     pending_lptu = bonding_contract.functions.pendingStake(delegator, 99999).call()
     pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
@@ -56,6 +70,22 @@ def waitForStake(bonding_contract, delegator):
         pending_lptu = bonding_contract.functions.pendingStake(delegator, 99999).call()
         pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
     print("Delegator has a stake of {0:.2f} LPT which exceeds the minimum threshold of {1:.2f}, continuing...".format(pending_lpt, LPT_THRESHOLD))
+
+"""
+@brief Waits for the delegator's ETH balance to reach the specified threshold
+@param w3: web3 object
+@param parsed_delegator_wallet: checksum address of the delegator which wants to transfer ETH
+"""
+def waitForETHBalance(w3, parsed_delegator_wallet):
+    eth_balance = w3.eth.get_balance(parsed_delegator_wallet)
+    eth_balance_in_ether = web3.Web3.fromWei(eth_balance, 'ether')
+    print("Delegator's ETH balance is {0:.2f} ETH".format(eth_balance_in_ether))
+    while eth_balance_in_ether < ETH_THRESHOLD:
+        print("Waiting for ETH balance to reach threshold {0} ETH. Currently has a balance of {1:.2f} ETH. Retrying in {2}...".format(ETH_THRESHOLD, eth_balance_in_ether, WAIT_TIME_BALANCE_CHECK))
+        time.sleep(WAIT_TIME_BALANCE_CHECK)
+        eth_balance = w3.eth.get_balance(parsed_delegator_wallet)
+        eth_balance_in_ether = web3.Web3.fromWei(eth_balance, 'ether')
+    print("Delegator's ETH balance is {0:.2f} ETH which exceeds the minimum threshold of {1:.2f} ETH, continuing...".format(eth_balance_in_ether, ETH_THRESHOLD))
 
 """
 @brief Waits for the currents Livepeer round to become locked
@@ -75,10 +105,10 @@ def waitForLock(rounds_contract):
 @param parsed_delegator_wallet: checksum public key of the delegator which wants to transfer stake
 @param parsed_destination_wallet: checksum address of the destination wallet
 """
-def doTransferBond(bonding_contract, parsed_delegator_wallet, parsed_destination_wallet):
+def doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet):
     delegator_info = bonding_contract.functions.getDelegator(parsed_delegator_wallet).call()
     staked_lpt = web3.Web3.fromWei(delegator_info[0], 'ether')
-    pending_lptu = bonding_contract.functions.pendingStake(parsed_delegator_wallet, 99999).call()
+    pending_lpt = bonding_contract.functions.pendingStake(parsed_delegator_wallet, 99999).call()
     pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
     transfer_amount = web3.Web3.toWei(pending_lpt - 1, 'ether')
     print("Should transfer {0} LPTU".format(transfer_amount))
@@ -95,16 +125,58 @@ def doTransferBond(bonding_contract, parsed_delegator_wallet, parsed_destination
     # Sign and initiate transaction
     signedTx = w3.eth.account.sign_transaction(tx, DELEGATOR_PRIVATE_KEY)
     transactionHash = w3.eth.send_raw_transaction(signedTx.rawTransaction)
-    print("Initiated transaction with hash {0}".format(transactionHash))
+    print("Initiated LPT transaction with hash {0}".format(transactionHash))
     # Wait for transaction to be confirmed
     receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
-    print("Completed transaction {0}".format(receipt))
+    print("Completed LPT transaction {0}".format(receipt))
 
+"""
+@brief Transfers all ETH balance to the configured destination wallet
+@param w3: web3 object
+@param parsed_delegator_wallet: checksum public key of the delegator which wants to transfer ETH
+@param parsed_destination_wallet: checksum address of the destination wallet
+"""
+def doTransferETH(w3, parsed_delegator_wallet, parsed_destination_wallet):
+    eth_balance = w3.eth.get_balance(parsed_delegator_wallet)
+    transfer_amount = eth_balance - web3.Web3.toWei(0.01, 'ether') # leave 0.01 ETH as gas fee
+    print("Should transfer {0} ETH".format(web3.Web3.fromWei(transfer_amount, 'ether')))
+    # Build transaction info
+    tx = {
+        'to': parsed_destination_wallet,
+        'value': transfer_amount,
+        'gas': 21000,
+        'gasPrice': w3.eth.gas_price,
+        'nonce': w3.eth.get_transaction_count(parsed_delegator_wallet),
+        'chainId': w3.eth.chain_id
+    }
+    # Sign and initiate transaction
+    signedTx = w3.eth.account.sign_transaction(tx, DELEGATOR_PRIVATE_KEY)
+    transactionHash = w3.eth.send_raw_transaction(signedTx.rawTransaction)
+    print("Initiated ETH transaction with hash {0}".format(transactionHash))
+    # Wait for transaction to be confirmed
+    receipt = w3.eth.wait_for_transaction_receipt(transactionHash)
+    print("Completed ETH transaction {0}".format(receipt))
+
+def lpt_transfer_loop():
+    while True:
+        print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
+        waitForLPTStake(bonding_contract, parsed_delegator_wallet)
+        waitForLock(rounds_contract)
+        doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet)
+
+def eth_transfer_loop():
+    while True:
+        print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
+        waitForETHBalance(w3, parsed_delegator_wallet)
+        doTransferETH(w3, parsed_delegator_wallet, parsed_eth_destination_wallet)
 
 if __name__ == "__main__":
+    display_global_config()
+
     # convert configured wallets to usable versions
     parsed_delegator_wallet = getChecksumAddr(DELEGATOR_PUBLIC_KEY)
-    parsed_destination_wallet = getChecksumAddr(RECEIVER_PUBLIC_KEY)
+    parsed_eth_destination_wallet = getChecksumAddr(ETH_RECEIVER_PUBLIC_KEY)
+    parsed_lpt_destination_wallet = getChecksumAddr(LPT_RECEIVER_PUBLIC_KEY)
 
     # open ABI files
     bondingABI = getABI("./BondingManagerTarget.json")
@@ -119,9 +191,25 @@ if __name__ == "__main__":
     bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=bondingABI)
     rounds_contract = w3.eth.contract(address=ROUNDS_CONTRACT_ADDR, abi=roundsABI)
 
-    # main loop
+    # create and start threads for LPT and ETH transfer loops
+    lpt_thread = threading.Thread(target=lpt_transfer_loop)
+    eth_thread = threading.Thread(target=eth_transfer_loop)
+
+    lpt_thread.start()
+    eth_thread.start()
+
+    lpt_thread.join()
+    eth_thread.join()
+    
+    # main loop for LPT transfer
     while True:
         print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
-        waitForStake(bonding_contract, parsed_delegator_wallet)
+        waitForLPTStake(bonding_contract, parsed_delegator_wallet)
         waitForLock(rounds_contract)
-        doTransferBond(bonding_contract, parsed_delegator_wallet, parsed_destination_wallet)
+        doTransferLPT(bonding_contract, parsed_delegator_wallet, parsed_lpt_destination_wallet)
+
+    # main loop for ETH transfer
+    while True:
+        print("Initiating new round for delegator {0}".format(DELEGATOR_PUBLIC_KEY))
+        waitForETHBalance(w3, parsed_delegator_wallet)
+        doTransferETH(w3, parsed_delegator_wallet, parsed_eth_destination_wallet)

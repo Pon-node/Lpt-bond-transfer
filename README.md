@@ -1,13 +1,17 @@
-﻿# Lpt-bond-transfer
+﻿# Lpt-bond-and-ETH-transfer
 ```gh repo clone Pon-node/Lpt-bond-transfer```
 Modify ```nano /Lpt-bond-transfer/LPT-bond-Transfer.py``` to set LPT_treshold, insert wallet addresses,privates keys and you can change RPC provider if you want to
 
-LPT_THRESHOLD = 3
+LPT_THRESHOLD = 3 (Keeping 1 LPT)
+ETH_THRESHOLD = 0.1 (keeping 0.01 ETH for fee)
+
 DELEGATOR_PRIVATE_KEY = 'InsertDelegatorPrivateKey'
 
 DELEGATOR_PUBLIC_KEY = 'InsertDelegatorWalletAddress'
 
-RECEIVER_PUBLIC_KEY = 'WalletThatWillReveiveBondAddress'
+ETH_RECEIVER_PUBLIC_KEY = 'ETHWalletThatWillReceiveAddress'
+
+LPT_RECEIVER_PUBLIC_KEY = 'LPTWalletThatWillReceiveAddress'
 
 L2_RPC_PROVIDER = 'https://arb1.arbitrum.io/rpc'```
 
