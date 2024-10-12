@@ -34,7 +34,7 @@ def getABI(path):
 """
 def getChecksumAddr(wallet):
     try:
-        parsed_wallet = web3.Web3.toChecksumAddress(wallet.lower())
+        parsed_wallet = web3.Web3.to_checksum_address(wallet.lower())
         return parsed_wallet
     except:
         print("Unable to parse delegator wallet address. Is {0} a valid address?".format(wallet))
@@ -48,7 +48,7 @@ def getChecksumAddr(wallet):
 def waitForStake(bonding_contract, delegator):
     # get delegator info (returns [bondedAmount, fees, delegateAddress, delegatedAmount, startRound, lastClaimRound, nextUnbondingLockId])
     pending_lptu = bonding_contract.functions.pendingStake(delegator, 99999).call()
-    pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
+    pending_lpt = web3.Web3.from_wei(pending_lptu, 'ether')
     print("Delegator is currently staking {0:.2f} LPT".format(pending_lpt))
     while pending_lpt < LPT_THRESHOLD:
         print("Waiting for staked LPT to reach threshold {0}. Currently has a stake of {1:.2f} LPT. Retrying in {2}...".format(LPT_THRESHOLD, pending_lpt, WAIT_TIME_BALANCE_CHECK))
@@ -77,10 +77,10 @@ def waitForLock(rounds_contract):
 """
 def doTransferBond(bonding_contract, parsed_delegator_wallet, parsed_destination_wallet):
     delegator_info = bonding_contract.functions.getDelegator(parsed_delegator_wallet).call()
-    staked_lpt = web3.Web3.fromWei(delegator_info[0], 'ether')
+    staked_lpt = web3.Web3.from_wei(delegator_info[0], 'ether')
     pending_lptu = bonding_contract.functions.pendingStake(parsed_delegator_wallet, 99999).call()
-    pending_lpt = web3.Web3.fromWei(pending_lptu, 'ether')
-    transfer_amount = web3.Web3.toWei(pending_lpt - 1, 'ether')
+    pending_lpt = web3.Web3.from_wei(pending_lptu, 'ether')
+    transfer_amount = web3.Web3.to_wei(pending_lpt - 1, 'ether')
     print("Should transfer {0} LPTU".format(transfer_amount))
     # Build transaction info
     tx = bonding_contract.functions.transferBond(parsed_destination_wallet, transfer_amount,
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     # connect to L2 grpc provider
     provider = web3.HTTPProvider(L2_RPC_PROVIDER)
     w3 = web3.Web3(provider)
-    assert w3.isConnected()
+    assert w3.is_connected()
 
     # prepare contracts
     bonding_contract = w3.eth.contract(address=BONDING_CONTRACT_ADDR, abi=bondingABI)
